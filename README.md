@@ -1,14 +1,24 @@
 # DataMapper
 
-A no-frills, no dependencies library for mapping and possibly transforming data 
-according to a mapping descriptor.
+A no-frills, light on dependencies library for mapping and transforming data 
+using a simple data-driven DSL.
+
+Some design goals include:
+- reduce ambiguity and reliance on conventions
+- as much ambivilence as possible regarding the shape of input and output data
+  - e.g., keys and values can be anything and therefore mapping descriptors 
+  must be explicit when referring to keys vs key paths.
+- require the explicit specification of destination keys/keypaths
+
+Due to these goals, mapping descriptors have a lot of options.
 
 ## Usage
 
 There is basically one function, `dev.doomsun.data-mapper/mapper`, and here is 
 how you use it.
 
-Map and possibly transform data according to a mapping descriptor.
+#### Description
+Map and transform data according to a mapping descriptor.
 
 #### Args
 - `context`, (optional) data for use in mapping, keys with namespace
@@ -58,16 +68,15 @@ A value-descriptor can be one of:
     - `:sequence`, a map or a function of the mapping context returning a map
       describing a lazy sequence transduction with the
       following keys:
-    - `:xf`, a transducer
+      - `:xf`, a transducer
     - `:transduce`, a map or a function of the mapping context returning a map
       describing an eager transduction with the following keys:
         - `:xf`, a transducer
-          and:
         - `:f`, (optional) a reducing step function
         - `:init`, (optional) initial value
-          or:
-        - `:into`, (optional) a destination collection, cannot be used with :f
-          or :init
+    - `:into`
+        - `:coll`, collection to put values into
+        - `:xf`, (optional) a transducer
 
 Context options:
 - `:dev.doomsun.data-mapper/halt-when`, a transducer created with

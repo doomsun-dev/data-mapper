@@ -1,5 +1,47 @@
 (ns dev.doomsun.data-mapper
-  (:import (clojure.lang MapEntry)))
+  (:require [clojure.alpha.spec :as s]))
+
+(s/def ::sequence-descriptor-schema
+  (s/schema {:xf fn?}))
+
+(s/def ::transduce-descriptor-schema
+  (s/schema {:xf fn?
+             :f fn?
+             :init any?}))
+(s/def ::into-descriptor-schema
+  (s/schema {:xf fn?
+             :into coll?}))
+
+(s/def ::mapping-descriptor
+  (s/map-of ::destination-descriptor ::value-descriptor))
+
+(s/def ::destination-descriptor
+  (s/or :keypath vector?
+        :keyset set?
+        :key any?))
+(s/def ::value-descriptor-schema
+  (s/schema {:default any?
+
+             :key any?
+             :keypath vector?
+             :key-fn fn?
+             :keypath-fn fn?
+             :value-fn fn?
+             :cvalue-fn fn?
+
+             :mapping-descriptor (s/or :fn fn?
+                                       :map ::mapping-descriptor)
+             :xform fn?
+             :cxform fn?
+             :sequence ::sequence-descriptor-schema
+             :transduce ::transduce-descriptor-schema
+             :into ::into-descriptor-schema}))
+
+(s/def ::value-descriptor
+  (s/select ::value-descriptor-schema [{:sequence [:xf]
+                                        :transduce [:xf]
+                                        :into [:coll]}]))
+
 
 (declare mapper)
 
@@ -73,13 +115,19 @@
                           (let [transduce-desc (cond-> (:transduce desc)
                                                        (fn? (:transduce desc))
                                                        (.invoke context))
-                                xf (:xf transduce-desc)]
-                            (if-let [into-coll (:into transduce-desc)]
-                              (into into-coll xf ssval)
-                              (let [{:keys [f init]} transduce-desc
-                                    f (or f conj)
-                                    init (or init (f))]
-                                (transduce xf f init ssval))))
+                                xf (:xf transduce-desc)
+                                {:keys [f init]} transduce-desc
+                                f (or f conj)
+                                init (or init (f))]
+                            (transduce xf f init ssval))
+
+                          (:into desc)
+                          (let [into-desc (:into desc)
+                                coll (:coll into-desc)
+                                xf (:xf into-desc)]
+                            (if xf
+                              (into coll xf ssval)
+                              (into coll ssval)))
 
                           :default
                           (let [{:keys [xform cxform]} desc]
@@ -160,16 +208,15 @@
     - `:sequence`, a map or a function of the mapping context returning a map
       describing a lazy sequence transduction with the
       following keys:
-    - `:xf`, a transducer
+      - `:xf`, a transducer
     - `:transduce`, a map or a function of the mapping context returning a map
       describing an eager transduction with the following keys:
       - `:xf`, a transducer
-      and:
       - `:f`, (optional) a reducing step function
       - `:init`, (optional) initial value
-      or:
-      - `:into`, (optional) a destination collection, cannot be used with :f
-      or :init
+    - `:into`
+      - `:coll`, collection to put values into
+      - `:xf`, (optional) a transducer
 
   Context options:
   - :dev.doomsun.data-mapper/halt-when, a transducer created with
@@ -196,48 +243,61 @@
     {}
     (normalize-mapping-descriptor mapping-descriptor))))
 
+(s/fdef mapper
+  :args (s/alt :with-context (s/cat :context map?
+                                    :mapping-descriptor ::mapping-descriptor
+                                    :input any?)
+               :no-context (s/cat :mapping-descriptor ::mapping-descriptor
+                                  :input any?)))
+
 
 ;; Examples
 (comment
 
  ;; basic
- (mapper {} {:x :a} {:a 5})
+ (mapper {:example/x :a} {:a 5})
 
  ;; with transform
- (mapper {}
-         {:x {:key :a
+ (mapper {:x {:key :a
               :xform inc}}
          {:a 5})
 
+ ;; with context
+ (mapper {:val 2}
+         {:example/x {:key :a
+                      :cxform (fn [c n] (+ (:val c) n))}}
+         {:a 5})
+
+
  ;; transform a collection
  (mapper {}
-         {:x {:key :a
-              :xform inc}}
+         {:example/x {:key :a
+                      :xform inc}}
          {:a [5 6 7]})
 
  ;; transduce a collection
  (mapper {}
-         {:a-inc-sum {:key :a
-                      :transduce {:xf (map inc)
-                                  :f +}}}
+         {:example/a-inc-sum {:key :a
+                              :transduce {:xf (map inc)
+                                          :f +}}}
          {:a [5 6 7]})
 
 
  ;; transduce a collection with context
  (mapper {:inc-amount 5}
-         {:a-inc-sum {:key :a
-                      :transduce (fn [context]
-                                   {:xf (map (partial + (:inc-amount context)))
-                                    :f +})}}
+         {:example/a-inc-sum {:key :a
+                              :transduce (fn [context]
+                                           {:xf (map (partial + (:inc-amount context)))
+                                            :f +})}}
          {:a [5 6 7]})
 
 
  ;; transform an infinite collection lazily
  (take 5
-       (:odd-numbers
+       (:example/odd-numbers
         (mapper {}
-                {:odd-numbers {:key :numbers
-                               :sequence {:xf (filter odd?)}}}
+                {:example/odd-numbers {:key :numbers
+                                       :sequence {:xf (filter odd?)}}}
                 {:numbers (iterate inc 0)})))
 
  ;; do something that might throw an exception, return as value
@@ -246,15 +306,19 @@
                                                                  (instance? Exception maybe-exception))
                                                                (fn [r [kp v]]
                                                                  (assoc-in r kp v)))}
-
          (array-map :x :a
                     :y {:key   :b
                         :xform inc}
                     :z :c)
-
          {:a "foo"
           :b "baz"
           :c "🤷🏻‍♂️"})
+
+ ;; Use into to get unique values
+ (mapper {}
+         {:uniques {:key :data
+                    :into {:coll #{}}}}
+         {:data [1 1 5 3 3 5 2 1 5]})
 
  nil)
 
