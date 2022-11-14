@@ -88,6 +88,7 @@
   [{::keys [catch-exceptions] :as context} desc input]
   (try
     (let [{:keys [keypath
+                  keypaths
                   value-fn
                   cvalue-fn
                   default
@@ -97,6 +98,10 @@
                                      (.invoke context))
           sval (cond
                  keypath (get-in input keypath not-found)
+                 keypaths (into {}
+                                (map (fn [[k kp]]
+                                       [k (get-in input kp not-found)]))
+                                keypaths)
                  value-fn (value-fn input)
                  cvalue-fn (cvalue-fn context input))]
       (if (= not-found sval)
@@ -185,6 +190,7 @@
     Required one of:
     - `:key`, a key to look up in the source
     - `:keypath`, a keypath to look up in the source
+    - `:keypaths`, multiple named keypaths of the form {<name> <keypath> ...}
     - `:key-fn`, a function of the destination key that returns a key to look up
       in the source
     - `:keypath-fn`, a function of the destination key that returns a keypath to
@@ -319,6 +325,12 @@
          {:uniques {:key :data
                     :into {:coll #{}}}}
          {:data [1 1 5 3 3 5 2 1 5]})
+
+ ;; multiple keypaths
+ (mapper {}
+         {:a {:keypaths {:x [:x] :y [:y]}
+              :xform (fn [{:keys [x y]}] (* x y))}}
+         {:x 3 :y 5})
 
  nil)
 

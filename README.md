@@ -45,6 +45,7 @@ A value-descriptor can be one of:
   Required one of:
     - `:key`, a key to look up in the source
     - `:keypath`, a keypath to look up in the source
+    - `:keypaths`, multiple named keypaths of the form {<name> <keypath> ...}
     - `:key-fn`, a function of the destination key that returns a key to look up
       in the source
     - `:keypath-fn`, a function of the destination key that returns a keypath to
