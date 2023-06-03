@@ -85,7 +85,7 @@
         mapping-descriptor))
 
 (defn apply-value-descriptor
-  [{::keys [catch-exceptions] :as context} desc input]
+  [{::keys [catch-exceptions default-cxform] :as context} desc input]
   (try
     (let [{:keys [keypath
                   keypaths
@@ -149,6 +149,9 @@
                                         (map (partial mapper
                                                       context
                                                       mapping-descriptor))
+
+                                        default-cxform
+                                        (map (partial default-cxform context))
 
                                         :default (map identity)))
                                      conj
@@ -232,7 +235,9 @@
       tuple value halted on
   - :dev.doomsun.data-mapper/catch-exceptions, boolean, catch exceptions and
     include as values in result (then you can use your halt-when
-    transducer to handle it!)"
+    transducer to handle it!)
+  - :dev.doomsun.data-mapper/default-cxform, a cxform applied if one is not
+  provided in a value-descriptor. A function of context and value"
   ([mapping-descriptor input]
    (mapper {} mapping-descriptor input))
   ([{::keys [halt-when] :as context} mapping-descriptor input]
@@ -264,37 +269,37 @@
  (mapper {:example/x :a} {:a 5})
 
  ;; with transform
- (mapper {:x {:key :a
+ (mapper {:x {:key   :a
               :xform inc}}
          {:a 5})
 
  ;; with context
  (mapper {:val 2}
-         {:example/x {:key :a
+         {:example/x {:key    :a
                       :cxform (fn [c n] (+ (:val c) n))}}
          {:a 5})
 
 
  ;; transform a collection
  (mapper {}
-         {:example/x {:key :a
+         {:example/x {:key   :a
                       :xform inc}}
          {:a [5 6 7]})
 
  ;; transduce a collection
  (mapper {}
-         {:example/a-inc-sum {:key :a
+         {:example/a-inc-sum {:key       :a
                               :transduce {:xf (map inc)
-                                          :f +}}}
+                                          :f  +}}}
          {:a [5 6 7]})
 
 
  ;; transduce a collection with context
  (mapper {:inc-amount 5}
-         {:example/a-inc-sum {:key :a
+         {:example/a-inc-sum {:key       :a
                               :transduce (fn [context]
                                            {:xf (map (partial + (:inc-amount context)))
-                                            :f +})}}
+                                            :f  +})}}
          {:a [5 6 7]})
 
 
@@ -302,7 +307,7 @@
  (take 5
        (:example/odd-numbers
         (mapper {}
-                {:example/odd-numbers {:key :numbers
+                {:example/odd-numbers {:key      :numbers
                                        :sequence {:xf (filter odd?)}}}
                 {:numbers (iterate inc 0)})))
 
@@ -322,15 +327,35 @@
 
  ;; Use into to get unique values
  (mapper {}
-         {:uniques {:key :data
+         {:uniques {:key  :data
                     :into {:coll #{}}}}
          {:data [1 1 5 3 3 5 2 1 5]})
 
  ;; multiple keypaths
  (mapper {}
          {:a {:keypaths {:x [:x] :y [:y]}
-              :xform (fn [{:keys [x y]}] (* x y))}}
+              :xform    (fn [{:keys [x y]}] (* x y))}}
          {:x 3 :y 5})
+
+ ;; returning :dev.doomsun.data-mapper/not-found from an xform should remove
+ ;; the destination key from the result
+ (mapper {}
+         {:a {:key :x
+              :xform (constantly ::not-found)}}
+         {:x 4})
+
+ (mapper {}
+         {:a {:key :x
+              :xform (fnil identity ::not-found)}}
+         {:x nil})
+
+ (mapper {:dev.doomsun.data-mapper/default-cxform (fn [context v] (if (nil? v) ::not-found v))}
+         {:a :x
+          :b :y
+          :c :z}
+         {:x nil
+          :y nil
+          :z 4})
 
  nil)
 
