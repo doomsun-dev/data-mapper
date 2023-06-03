@@ -88,3 +88,5 @@ Context options:
 - `:dev.doomsun.data-mapper/catch-exceptions`, boolean, catch exceptions and
   include as values in result (then you can use your halt-when
   transducer to handle it!)
+- `:dev.doomsun.data-mapper/default-cxform`, a cxform applied if one is not
+  provided in a value-descriptor. A function of context and value
