@@ -72,16 +72,21 @@
                   [dkey (assoc desc :keypath [(:key desc)])]
                   map-entry)))
          (map (fn [[dkey desc :as map-entry]]
-                (cond
-                  (:key-fn desc) [dkey
-                                  (assoc desc
-                                    :keypath [((:key-fn desc) dkey)])]
-                  (:keypath-fn desc) [dkey
-                                      (assoc desc
-                                        :keypath ((:keypath-fn desc) dkey))]
-                  :default map-entry)))
+                (let [dkey (cond-> dkey (::normalized-scalar (meta dkey)) first)]
+                  (cond
+                    (:key-fn desc) [dkey
+                                    (assoc desc
+                                      :keypath [((:key-fn desc) dkey)])]
+                    (:keypath-fn desc) [dkey
+                                        (assoc desc
+                                          :keypath ((:keypath-fn desc) dkey))]
+                    :default map-entry))))
          (map (fn [[dkey desc]]
-                [(cond-> dkey (not (vector? dkey)) vector) desc])))
+                [(cond-> dkey
+                         (not (vector? dkey))
+                         (-> vector
+                             (with-meta {::normalized-scalar true})))
+                 desc])))
         mapping-descriptor))
 
 (defn apply-value-descriptor
@@ -356,6 +361,12 @@
          {:x nil
           :y nil
           :z 4})
+
+ (mapper {}
+         {#{:blah/x
+            :blah/y} {:key-fn (comp keyword name)}}
+         {:x 2
+          :y 3})
 
  nil)
 
