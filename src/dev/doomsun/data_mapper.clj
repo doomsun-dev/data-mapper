@@ -75,7 +75,8 @@
                 (cond
                   (:key-fn desc) [dkey
                                   (assoc desc
-                                    :keypath [((:key-fn desc) dkey)])]
+                                         :keypath [((:key-fn desc) (cond-> dkey
+                                                                     (coll? dkey) first))])]
                   (:keypath-fn desc) [dkey
                                       (assoc desc
                                         :keypath ((:keypath-fn desc) dkey))]
