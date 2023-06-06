@@ -38,9 +38,12 @@
              :into ::into-descriptor-schema}))
 
 (s/def ::value-descriptor
-  (s/select ::value-descriptor-schema [{:sequence [:xf]
-                                        :transduce [:xf]
-                                        :into [:coll]}]))
+  (s/or
+   :value-descriptor (s/select ::value-descriptor-schema [{:sequence [:xf]
+                                                           :transduce [:xf]
+                                                           :into [:coll]}])
+   :source-keypath sequential?
+   :source-key any?))
 
 
 (declare mapper)
