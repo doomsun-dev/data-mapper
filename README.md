@@ -20,6 +20,8 @@ how you use it.
 #### Description
 Map and transform data according to a mapping descriptor.
 
+Map and possibly transform data according to a mapping descriptor.
+
 #### Args
 - `context`, (optional) data for use in mapping, keys with namespace
   "dev.doomsun.data-mapper" are reserved for mapper configuration
@@ -45,7 +47,7 @@ A value-descriptor can be one of:
   Required one of:
     - `:key`, a key to look up in the source
     - `:keypath`, a keypath to look up in the source
-    - `:keypaths`, multiple named keypaths of the form {\<name\> \<keypath\> ...}
+    - `:keypaths`, multiple named keypaths of the form {<name> <keypath> ...}
     - `:key-fn`, a function of the destination key that returns a key to look up
       in the source
     - `:keypath-fn`, a function of the destination key that returns a keypath to
@@ -69,7 +71,7 @@ A value-descriptor can be one of:
     - `:sequence`, a map or a function of the mapping context returning a map
       describing a lazy sequence transduction with the
       following keys:
-      - `:xf`, a transducer
+        - `:xf`, a transducer
     - `:transduce`, a map or a function of the mapping context returning a map
       describing an eager transduction with the following keys:
         - `:xf`, a transducer
@@ -79,14 +81,17 @@ A value-descriptor can be one of:
         - `:coll`, collection to put values into
         - `:xf`, (optional) a transducer
 
-Context options:
-- `:dev.doomsun.data-mapper/halt-when`, a transducer created with
+Context options (can also be included in the mapping descriptor, context keys
+take precedence):
+- :dev.doomsun.data-mapper/halt-when, a transducer created with
   clojure.core/halt-when applied to the application of value-descriptors.
-    - `pred` operates on a tuple of the form `[<destination-keypath> <value>]`
+    - `pred` operates on a tuple of the form [destination-keypath value]
     - `retf`'s return value will be the result of the mapping, otherwise the
       tuple value halted on
-- `:dev.doomsun.data-mapper/catch-exceptions`, boolean, catch exceptions and
+- :dev.doomsun.data-mapper/catch-exceptions, boolean, catch exceptions and
   include as values in result (then you can use your halt-when
   transducer to handle it!)
-- `:dev.doomsun.data-mapper/default-cxform`, a cxform applied if one is not
+- :dev.doomsun.data-mapper/default-cxform, a cxform applied if one is not
   provided in a value-descriptor. A function of context and value
+- :dev.doomsun.data-mapper/remove-nil-values, boolean, remove nil values from
+  result

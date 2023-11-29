@@ -237,7 +237,8 @@
       - `:coll`, collection to put values into
       - `:xf`, (optional) a transducer
 
-  Context options:
+  Context options (can also be included in the mapping descriptor, context keys
+  take precedence):
   - :dev.doomsun.data-mapper/halt-when, a transducer created with
     clojure.core/halt-when applied to the application of value-descriptors.
     - `pred` operates on a tuple of the form [destination-keypath value]
@@ -253,18 +254,20 @@
   ([mapping-descriptor input]
    (mapper {} mapping-descriptor input))
   ([{::keys [halt-when] :as context} mapping-descriptor input]
-   (transduce
-    (cond->
-     (keep (fn [[dkeypath vdesc]]
-             (let [v (apply-value-descriptor context vdesc input)]
-               (if (= not-found v) nil [dkeypath v]))))
-     halt-when (comp halt-when))
-    (fn
-      ([m [dkeypath v]]
-       (assoc-in m dkeypath v))
-      ([m] m))
-    {}
-    (normalize-mapping-descriptor mapping-descriptor))))
+   (let [md-opts (into {} (filter (comp #{(str *ns*)} namespace key)) mapping-descriptor)
+         context' (merge md-opts context)]
+     (transduce
+      (cond->
+       (keep (fn [[dkeypath vdesc]]
+               (let [v (apply-value-descriptor context' vdesc input)]
+                 (if (= not-found v) nil [dkeypath v]))))
+       halt-when (comp halt-when))
+      (fn
+        ([m [dkeypath v]]
+         (assoc-in m dkeypath v))
+        ([m] m))
+      {}
+      (normalize-mapping-descriptor mapping-descriptor)))))
 
 (s/fdef mapper
   :args (s/alt :with-context (s/cat :context map?
@@ -385,6 +388,15 @@
           :z 4})
 
 
+ (mapper {}
+         {::remove-nil-values true
+          :a {:key :x
+              :xform (constantly nil)}
+          :b :y
+          :c :z}
+         {:x 4
+          :y nil
+          :z 4})
  nil)
 
 
