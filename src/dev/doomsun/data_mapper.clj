@@ -254,7 +254,11 @@
   ([mapping-descriptor input]
    (mapper {} mapping-descriptor input))
   ([{::keys [halt-when] :as context} mapping-descriptor input]
-   (let [md-opts (into {} (filter (comp #{(str *ns*)} namespace key)) mapping-descriptor)
+   (let [md-opts (into {}
+                       (comp
+                         (filter (comp keyword? key))
+                         (filter (comp #{(str *ns*)} namespace key)))
+                       mapping-descriptor)
          context' (merge md-opts context)]
      (transduce
       (cond->
@@ -390,6 +394,7 @@
 
  (mapper {}
          {::remove-nil-values true
+          "sldfjsd" 4
           :a {:key :x
               :xform (constantly nil)}
           :b :y
