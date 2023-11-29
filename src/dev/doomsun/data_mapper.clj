@@ -93,7 +93,7 @@
         mapping-descriptor))
 
 (defn apply-value-descriptor
-  [{::keys [catch-exceptions default-cxform] :as context} desc input]
+  [{::keys [catch-exceptions default-cxform remove-nil-values] :as context} desc input]
   (try
     (let [{:keys [keypath
                   keypaths
@@ -166,7 +166,9 @@
                                      []
                                      ssval)
                                     is-single first)))]
-          xformed)))
+          (if (and remove-nil-values (nil? xformed))
+            not-found
+            xformed))))
     (catch Exception e
       (if catch-exceptions
         e
@@ -245,7 +247,9 @@
     include as values in result (then you can use your halt-when
     transducer to handle it!)
   - :dev.doomsun.data-mapper/default-cxform, a cxform applied if one is not
-  provided in a value-descriptor. A function of context and value"
+  provided in a value-descriptor. A function of context and value
+  - :dev.doomsun.data-mapper/remove-nil-values, boolean, remove nil values from
+  result"
   ([mapping-descriptor input]
    (mapper {} mapping-descriptor input))
   ([{::keys [halt-when] :as context} mapping-descriptor input]
@@ -370,6 +374,16 @@
             :blah/y} {:key-fn (comp keyword name)}}
          {:x 2
           :y 3})
+
+ (mapper {::remove-nil-values true}
+         {:a {:key :x
+              :xform (constantly nil)}
+          :b :y
+          :c :z}
+         {:x 4
+          :y nil
+          :z 4})
+
 
  nil)
 
