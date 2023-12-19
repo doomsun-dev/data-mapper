@@ -257,7 +257,7 @@
    (let [md-opts (into {}
                        (comp
                          (filter (comp keyword? key))
-                         (filter (comp #{(str *ns*)} namespace key)))
+                         (filter (comp #{"dev.doomsun.data-mapper"} namespace key)))
                        mapping-descriptor)
          context' (merge md-opts context)]
      (transduce
@@ -402,6 +402,21 @@
          {:x 4
           :y nil
           :z 4})
+
+
+ (require '[dev.doomsun.data-mapper :as dm])
+
+ (dm/mapper {}
+            {;::dm/remove-nil-values true
+             :type :treasury-prime.statement/type
+             :date {:key   :statement/period-string
+                    :xform #(some-> % ((constantly nil)))}
+             :year {:key   :statement/period-string
+                    :xform #(some-> % ((constantly nil)))}}
+            {:statement/period-string       "2023-11"
+             :treasury-prime.statement/type "monthly"})
+
+
  nil)
 
 
