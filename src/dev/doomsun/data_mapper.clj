@@ -10,6 +10,7 @@
              :init any?}))
 (s/def ::into-descriptor-schema
   (s/schema {:xf fn?
+             :cxf fn?
              :into coll?}))
 
 (s/def ::mapping-descriptor
@@ -137,10 +138,12 @@
                           (:into desc)
                           (let [into-desc (:into desc)
                                 coll (:coll into-desc)
-                                xf (:xf into-desc)]
-                            (if xf
-                              (into coll xf ssval)
-                              (into coll ssval)))
+                                xf (:xf into-desc)
+                                cxf ((:cxf into-desc) context)]
+                            (cond
+                              xf (into coll xf ssval)
+                              cxf (into coll cxf ssval)
+                              :default (into coll ssval)))
 
                           :default
                           (let [{:keys [xform cxform]} desc]
@@ -236,6 +239,8 @@
     - `:into`
       - `:coll`, collection to put values into
       - `:xf`, (optional) a transducer
+      - `:cxf`, (optional) a function that is passed the mapping context and 
+      returns transducer 
 
   Context options (can also be included in the mapping descriptor, context keys
   take precedence):
@@ -403,20 +408,12 @@
           :y nil
           :z 4})
 
-
- (require '[dev.doomsun.data-mapper :as dm])
-
- (dm/mapper {}
-            {;::dm/remove-nil-values true
-             :type :treasury-prime.statement/type
-             :date {:key   :statement/period-string
-                    :xform #(some-> % ((constantly nil)))}
-             :year {:key   :statement/period-string
-                    :xform #(some-> % ((constantly nil)))}}
-            {:statement/period-string       "2023-11"
-             :treasury-prime.statement/type "monthly"})
-
-
+  ;; into a collection where the transducer needs the mapping context
+  (mapper {:transducer-fn (map inc)}
+          {:example/a-inc-sum {:key       :a
+                               :into {:coll []
+                                      :cxf (fn [context] (:transducer-fn context))}}}
+          {:a [5 6 7]})
  nil)
 
 

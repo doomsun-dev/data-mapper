@@ -80,6 +80,8 @@ A value-descriptor can be one of:
     - `:into`
         - `:coll`, collection to put values into
         - `:xf`, (optional) a transducer
+        - `:cxf`, (optional) a function that is passed the mapping context and 
+        returns transducer 
 
 Context options (can also be included in the mapping descriptor, context keys
 take precedence):
