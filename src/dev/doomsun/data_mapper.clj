@@ -100,7 +100,6 @@
                   keypaths
                   value-fn
                   cvalue-fn
-                  default
                   mapping-descriptor]} desc
           mapping-descriptor (cond-> mapping-descriptor
                                      (fn? mapping-descriptor)
@@ -114,7 +113,9 @@
                  value-fn (value-fn input)
                  cvalue-fn (cvalue-fn context input))]
       (if (= not-found sval)
-        (or default not-found)
+        (if (contains? desc :default)
+          (:default desc)
+          not-found)
         (let [is-single (not (sequential? sval))
               ssval     (cond-> sval is-single vector)
               xformed   (cond
@@ -239,8 +240,8 @@
     - `:into`
       - `:coll`, collection to put values into
       - `:xf`, (optional) a transducer
-      - `:cxf`, (optional) a function that is passed the mapping context and 
-      returns transducer 
+      - `:cxf`, (optional) a function that is passed the mapping context and
+      returns transducer
 
   Context options (can also be included in the mapping descriptor, context keys
   take precedence):
@@ -414,6 +415,13 @@
                                :into {:coll []
                                       :cxf (fn [context] (:transducer-fn context))}}}
           {:a [5 6 7]})
+
+  (mapper {::remove-nil-values true}
+          {:a {:key     :a
+               :default false}
+           :b {:key     :b
+               :default nil}}
+          {:c nil})
+  ;; => {:a false, :b nil}
+
  nil)
-
-
