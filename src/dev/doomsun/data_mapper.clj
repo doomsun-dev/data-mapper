@@ -140,10 +140,10 @@
                           (let [into-desc (:into desc)
                                 coll (:coll into-desc)
                                 xf (:xf into-desc)
-                                cxf ((:cxf into-desc) context)]
+                                cxf (:cxf into-desc)]
                             (cond
                               xf (into coll xf ssval)
-                              cxf (into coll cxf ssval)
+                              cxf (into coll (cxf context) ssval)
                               :default (into coll ssval)))
 
                           :default
